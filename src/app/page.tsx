@@ -1,7 +1,7 @@
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
 import { syncUserWithDatabase } from "@/lib/user-sync";
-import Image from "next/image";
+import { ResumeUploadForm } from "./components/resume-upload-form";
 
 export default async function HomePage() {
   const session = await auth0.getSession();
@@ -9,7 +9,7 @@ export default async function HomePage() {
 
   // Veritabanındaki kullanıcı kaydını çekiyoruz
   let dbUser = null;
- if (user?.sub && user?.email) {
+  if (user?.sub && user?.email) {
     // 1. Önce veritabanını kontrol et
     dbUser = await prisma.user.findUnique({
       where: { auth0Id: user.sub },
@@ -75,6 +75,13 @@ export default async function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Kullanıcı giriş yaptıysa CV Yükleme Formunu gösteriyoruz */}
+      {user && (
+        <div className="w-full max-w-md">
+          <ResumeUploadForm />
+        </div>
+      )}
     </main>
   );
 }

@@ -1,12 +1,20 @@
-const pdfParse = require("pdf-parse");
+import PDFParser from "pdf2json";
 
 export async function parsePdfBuffer(buffer: Buffer): Promise<string> {
-  try {
-    const data = await pdfParse(buffer);
-    // PDF içerisindeki ham metni döndürüyoruz
-    return data.text;
-  } catch (error) {
-    console.error("PDF parsing error:", error);
-    throw new Error("PDF parsing failed. Please ensure the file is a valid PDF.");
-  }
+  return new Promise((resolve, reject) => {
+    const pdfParser = new PDFParser(null, true);
+
+    pdfParser.on("pdfParser_dataError", (errData: any) => {
+      console.error("PDF Parsing Error:", errData.parserError);
+      reject(new Error("PDF parsing failed. The file might be corrupted or not a valid PDF."));
+    });
+
+    pdfParser.on("pdfParser_dataReady", () => {
+      // PDF içerisinden ayıklanan ham metni alıyoruz
+      const rawText = pdfParser.getRawTextContent();
+      resolve(rawText);
+    });
+
+    pdfParser.parseBuffer(buffer);
+  });
 }
