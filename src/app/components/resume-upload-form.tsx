@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { ResumeAnalysisResult } from "./resume-analysis-result";
+import {useRouter} from "next/navigation";
 
 export function ResumeUploadForm() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [targetJobTitle, setTargetJobTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,6 +21,7 @@ export function ResumeUploadForm() {
 
     setLoading(true);
     setMessage(null);
+    setAnalysisResult(null);
 
     try {
       const formData = new FormData();
@@ -35,7 +40,11 @@ export function ResumeUploadForm() {
       }
 
       setMessage({ type: "success", text: "CV successfully uploaded and text extracted!" });
-      console.log("Extracted CV Text:", data.text);
+     
+      // Oluşturulan analizin ID'sine göre kullanıcıyı detay sayfasına yönlendiriyoruz
+    if (data.data?.id) {
+        router.push(`/dashboard/resume/${data.data.id}`);
+      }
     } catch (err: any) {
       setMessage({ type: "error", text: err.message || "An error occurred." });
     } finally {
@@ -44,6 +53,7 @@ export function ResumeUploadForm() {
   };
 
   return (
+    <div className="space-y-6">
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto p-6 border rounded-xl bg-card shadow-sm">
       <h2 className="text-xl font-bold text-center">CV Upload & Analyze</h2>
 
@@ -70,9 +80,8 @@ export function ResumeUploadForm() {
 
       {message && (
         <div
-          className={`p-3 text-xs rounded-md ${
-            message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"
-          }`}
+          className={`p-3 text-xs rounded-md ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"
+            }`}
         >
           {message.text}
         </div>
@@ -83,8 +92,12 @@ export function ResumeUploadForm() {
         disabled={loading}
         className="w-full py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
       >
-        {loading ? "Processing..." : "Upload CV"}
+        {loading ? "AI Analyzing..." : "Upload CV & Analyze"}
       </button>
     </form>
+
+    {/* Gemini Analiz Sonucu Varsa Ekrana Basıyoruz */}
+    {analysisResult && <ResumeAnalysisResult data={analysisResult} />}
+    </div>
   );
 }
