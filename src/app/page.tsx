@@ -2,6 +2,7 @@ import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
 import { syncUserWithDatabase } from "@/lib/user-sync";
 import { ResumeUploadForm } from "./components/resume-upload-form";
+import Link from "next/link";
 
 export default async function HomePage() {
   const session = await auth0.getSession();
@@ -54,6 +55,17 @@ export default async function HomePage() {
               )}
             </div>
 
+
+            {/* Özellik Hızlı Erişim Butonları */}
+            <div className="pt-2 flex flex-col gap-2">
+              <Link
+                href="/interview"
+                className="w-full text-center py-2 px-4 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                🎙️ Go to Interview Simulator →
+              </Link>
+            </div>
+            
             <a
               href="/auth/logout"
               className="block w-full text-center py-2 px-4 bg-destructive text-destructive-foreground rounded-md text-sm font-medium"
