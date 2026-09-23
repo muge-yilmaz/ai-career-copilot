@@ -1,11 +1,20 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+}
+
+interface Evaluation {
+  overallScore: number;
+  technicalScore: number;
+  communicationScore: number;
+  strengths: string[];
+  improvements: string[];
+  feedback: string;
 }
 
 export function InterviewSimulator() {
@@ -14,12 +23,13 @@ export function InterviewSimulator() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Otomatik aşağı kaydırma
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -34,28 +44,47 @@ export function InterviewSimulator() {
     setIsStarted(true);
   };
 
-  // Mülakatı Bitir ve Kaydet
   const handleEndInterview = async () => {
-    if (!sessionId || isLoading) return;
-    setIsLoading(true);
+    if (isLoading || isEvaluating) return;
+
+    setIsEvaluating(true);
+
     try {
-      await fetch("/api/interview", {
+      // 1. Mülakatı Kaydet
+      if (sessionId) {
+        await fetch("/api/interview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            messages,
+            isFinished: true,
+          }),
+        });
+      }
+
+      // 2. Değerlendirme Al
+      const evalRes = await fetch("/api/interview/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
           messages,
-          isFinished: true,
+          roleTitle,
         }),
       });
-      setIsCompleted(true);
+
+      if (evalRes.ok) {
+        const evalData = await evalRes.json();
+        setEvaluation(evalData);
+      }
     } catch (err) {
-      console.error("Failed to save interview:", err);
+      console.error("Failed to evaluate interview:", err);
     } finally {
-      setIsLoading(false);
+      setIsEvaluating(false);
+      setIsCompleted(true);
     }
   };
-
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +133,6 @@ export function InterviewSimulator() {
 
         let chunk = decoder.decode(value, { stream: true });
 
-        // Backend'den gelen Session ID işaretçisini yakala
         if (chunk.includes("[SESSION_ID:")) {
           const match = chunk.match(/\[SESSION_ID:(.*?)\]/);
           if (match && match[1]) {
@@ -142,10 +170,10 @@ export function InterviewSimulator() {
         {isStarted && !isCompleted && (
           <button
             onClick={handleEndInterview}
-            disabled={isLoading || messages.length === 0}
-            className="py-1 px-3 bg-destructive text-destructive-foreground text-xs font-medium rounded-md hover:opacity-90 disabled:opacity-50"
+            disabled={isLoading || isEvaluating || messages.length === 0}
+            className="py-1.5 px-3 bg-destructive text-destructive-foreground text-xs font-medium rounded-md hover:opacity-90 disabled:opacity-50"
           >
-            End Interview
+            {isEvaluating ? "Analyzing Performance..." : "End Interview"}
           </button>
         )}
       </div>
@@ -172,7 +200,7 @@ export function InterviewSimulator() {
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="h-[400px] overflow-y-auto border p-4 rounded-md space-y-4 bg-muted/20">
+          <div className="h-[350px] overflow-y-auto border p-4 rounded-md space-y-4 bg-muted/20">
             {messages.length === 0 && (
               <p className="text-xs text-muted-foreground text-center italic">
                 The interviewer for "{roleTitle}" is ready. Type "Hello" below to begin.
@@ -206,13 +234,69 @@ export function InterviewSimulator() {
             <div ref={messagesEndRef} />
           </div>
 
-          {isCompleted ? (
+          {isEvaluating ? (
+            <div className="p-6 border rounded-lg bg-card text-center space-y-3 shadow-sm">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <p className="text-sm font-medium text-foreground">
+                Analyzing your interview performance...
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Evaluating technical responses, communication clarity, and overall fit.
+              </p>
+            </div>
+          ) : isCompleted && evaluation ? (
+            <div className="p-5 border rounded-lg bg-card space-y-4 shadow-sm">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="text-base font-bold text-primary">
+                  Interview Performance Report
+                </h3>
+                <span className="text-xs px-2.5 py-1 bg-green-100 text-green-800 rounded-full font-semibold">
+                  Overall Score: {evaluation.overallScore}/100
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 border rounded bg-muted/30">
+                  <span className="text-muted-foreground">Technical Score:</span>
+                  <p className="text-sm font-semibold">{evaluation.technicalScore}/100</p>
+                </div>
+                <div className="p-3 border rounded bg-muted/30">
+                  <span className="text-muted-foreground">Communication Score:</span>
+                  <p className="text-sm font-semibold">{evaluation.communicationScore}/100</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div>
+                  <strong className="text-green-600">Key Strengths:</strong>
+                  <ul className="list-disc pl-4 mt-1 text-muted-foreground space-y-0.5">
+                    {evaluation.strengths?.map((str, idx) => (
+                      <li key={idx}>{str}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <strong className="text-amber-600">Areas for Improvement:</strong>
+                  <ul className="list-disc pl-4 mt-1 text-muted-foreground space-y-0.5">
+                    {evaluation.improvements?.map((imp, idx) => (
+                      <li key={idx}>{imp}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-2 border-t">
+                  <strong className="text-foreground">Detailed Feedback:</strong>
+                  <p className="mt-1 text-muted-foreground leading-relaxed">
+                    {evaluation.feedback}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : isCompleted ? (
             <div className="p-4 border rounded-md bg-muted text-center space-y-2">
               <p className="text-sm font-semibold text-green-600">
                 Interview Completed & Saved!
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Your session has been recorded. You can view your history in the Dashboard.
               </p>
             </div>
           ) : (
