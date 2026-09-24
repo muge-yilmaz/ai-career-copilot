@@ -1,5 +1,6 @@
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
+import { ratelimit } from "@/lib/redis";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from "next/server";
 
@@ -13,6 +14,29 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return new Response("Unauthorized access. Please log in.", { status: 401 });
     }
+
+
+    //UPSTASH RATE LIMITING KONTROLÜ
+    if (process.env.UPSTASH_REDIS_REST_URL) {
+      const identifier = session.user.sub || "anonymous_user";
+      const { success, limit, remaining, reset } = await ratelimit.limit(identifier);
+
+      if (!success) {
+        return new Response(
+          JSON.stringify({
+            error: "Too many requests. Please wait a minute before trying again.",
+            limit,
+            remaining,
+            reset,
+          }),
+          {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
 
     // Auth0 kullanıcısını veritabanından bul
     const user = await prisma.user.findUnique({
