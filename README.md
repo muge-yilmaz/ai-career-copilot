@@ -2,7 +2,7 @@
 
 > **An AI-powered career optimization system that generates ATS-tailored resumes, analyzes skill gaps, and prepares candidate interview strategies.**
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://ai-career-copilot.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)]([https://ai-career-copilot.vercel.app](https://ai-career-copilot-drab.vercel.app/))
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/muge-yilmaz/ai-career-copilot)
 
 ---
