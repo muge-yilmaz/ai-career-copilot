@@ -13,9 +13,9 @@ import {
 
 interface ResumeAnalysisItem {
   id: string;
-  matchPercentage: number;
-  roleTitle: string;
-  missingKeywords?: string[];
+  matchScore: number;
+  jobTitle: string;
+  missingSkills?: string[];
   feedback?: string;
   createdAt: string;
 }
@@ -34,7 +34,6 @@ export default function DashboardPage() {
   const [interviewSessions, setInterviewSessions] = useState<InterviewSessionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedInterview, setSelectedInterview] = useState<InterviewSessionItem | null>(null);
-  const [selectedAnalysis, setSelectedAnalysis] = useState<ResumeAnalysisItem | null>(null);
 
 
   useEffect(() => {
@@ -72,10 +71,10 @@ export default function DashboardPage() {
       : null;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-background via-muted/20 to-background py-8 px-4">
-      <div className="container max-w-5xl mx-auto space-y-8">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-background via-muted/20 to-background py-6 sm:py-8 px-4 pb-10">
+      <div className="container max-w-5xl mx-auto space-y-6 sm:space-y-8">
         {/* Page Title */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-4">
           <div>
             <Link
               href="/"
@@ -89,16 +88,16 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 sm:flex gap-2">
             <Link
               href="/interview"
-              className="px-3.5 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg shadow-sm hover:opacity-90 transition-all"
+              className="px-3.5 py-2.5 text-center bg-primary text-primary-foreground text-xs font-semibold rounded-lg shadow-sm hover:opacity-90 transition-all sm:col-auto"
             >
               🎙️ New Interview
             </Link>
             <Link
               href="/"
-              className="px-3.5 py-2 border bg-card text-card-foreground text-xs font-semibold rounded-lg hover:bg-muted transition-all"
+              className="px-3.5 py-2.5 text-center border bg-card text-card-foreground text-xs font-semibold rounded-lg hover:bg-muted transition-all"
             >
               🎯 Analyze Resume
             </Link>
@@ -106,30 +105,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats Banner */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 border rounded-xl bg-card shadow-sm space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Total Interviews</span>
-            <p className="text-2xl font-bold text-foreground">{interviewSessions.length}</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="p-3 sm:p-4 border rounded-xl bg-card shadow-sm space-y-1">
+            <span className="text-[11px] sm:text-xs font-medium text-muted-foreground leading-tight">Total Interviews</span>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">{interviewSessions.length}</p>
           </div>
 
-          <div className="p-4 border rounded-xl bg-card shadow-sm space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Total CV Matches</span>
-            <p className="text-2xl font-bold text-foreground">{resumeAnalyses.length}</p>
+          <div className="p-3 sm:p-4 border rounded-xl bg-card shadow-sm space-y-1">
+            <span className="text-[11px] sm:text-xs font-medium text-muted-foreground leading-tight">Total CV Matches</span>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">{resumeAnalyses.length}</p>
           </div>
 
-          <div className="p-4 border rounded-xl bg-card shadow-sm space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Avg. Interview Score</span>
-            <p className="text-2xl font-bold text-primary">
+          <div className="p-3 sm:p-4 border rounded-xl bg-card shadow-sm space-y-1">
+            <span className="text-[11px] sm:text-xs font-medium text-muted-foreground leading-tight">Avg. Interview Score</span>
+            <p className="text-xl sm:text-2xl font-bold text-primary">
               {avgScore !== null ? avgScore + "/100" : "N/A"}
             </p>
           </div>
         </div>
 
         {/* History Lists Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Past AI Interviews */}
-          <div className="border rounded-2xl p-5 bg-card shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b pb-3">
+          <div className="border rounded-2xl p-4 sm:p-5 bg-card shadow-sm space-y-4">
+            <div className="flex flex-wrap justify-between items-center gap-2 border-b pb-3">
               <h2 className="font-bold text-sm flex items-center gap-2">
                 <span>🎙️</span> AI Interview Sessions
               </h2>
@@ -154,10 +153,10 @@ export default function DashboardPage() {
                   <div
                     key={session.id}
                     onClick={() => setSelectedInterview(session)}
-                    className="flex justify-between items-center p-3.5 border rounded-xl bg-muted/20 hover:bg-muted/40 transition-all shadow-2xs"
+                    className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:justify-between min-[420px]:items-center p-3.5 border rounded-xl bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer shadow-2xs"
                   >
-                    <div>
-                      <h3 className="text-xs font-semibold text-foreground">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-foreground truncate">
                         {session.roleTitle}
                       </h3>
                       <span className="text-xs text-muted-foreground">
@@ -169,9 +168,9 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between min-[420px]:justify-end gap-2 shrink-0">
                       <span
-                        className={`text-xs px-3 py-1.5 rounded-full font-bold ${
+                        className={`text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap ${
                           session.score && session.score >= 75
                             ? "bg-green-100 text-green-800"
                             : session.score && session.score >= 50
@@ -192,8 +191,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Past Resume Analyses */}
-          <div className="border rounded-2xl p-5 bg-card shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b pb-3">
+          <div className="border rounded-2xl p-4 sm:p-5 bg-card shadow-sm space-y-4">
+            <div className="flex flex-wrap justify-between items-center gap-2 border-b pb-3">
               <h2 className="font-bold text-sm flex items-center gap-2">
                 <span>🎯</span> Resume Match Analyses
               </h2>
@@ -215,15 +214,16 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2.5">
                 {resumeAnalyses.map((analysis) => (
-                  <div
+                  <Link
                     key={analysis.id}
-                    className="flex justify-between items-center p-3.5 border rounded-xl bg-muted/20 hover:bg-muted/40 transition-all shadow-2xs"
+                    href={`/dashboard/resume/${analysis.id}`}
+                    className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:justify-between min-[420px]:items-center p-3.5 border rounded-xl bg-muted/20 hover:bg-muted/40 transition-all shadow-2xs"
                   >
-                    <div>
-                      <h3 className="text-xs font-semibold text-foreground">
-                        {analysis.roleTitle || "Target Role Analysis"}
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-foreground truncate">
+                        {analysis.jobTitle || "Target Role Analysis"}
                       </h3>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {new Date(analysis.createdAt).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
@@ -232,15 +232,15 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2.5 py-1 bg-green-100 text-green-800 font-bold rounded-full">
-                        {analysis.matchPercentage}% Match
+                    <div className="flex items-center justify-between min-[420px]:justify-end gap-2 shrink-0">
+                      <span className="text-xs px-2.5 py-1 bg-green-100 text-green-800 font-bold rounded-full whitespace-nowrap">
+                        {analysis.matchScore}% Match
                       </span>
                       <span className="text-xs text-muted-foreground group-hover:translate-x-0.5 transition-transform">
                         →
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -250,9 +250,9 @@ export default function DashboardPage() {
 
       {/* MÜLAKAT DETAY MODAL'I */}
       <Dialog open={!!selectedInterview} onOpenChange={() => setSelectedInterview(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">
+        <DialogContent className="w-full max-w-[calc(100%-1.5rem)] gap-4 p-4 sm:max-w-2xl sm:p-6 max-h-[min(85dvh,720px)] overflow-y-auto">
+          <DialogHeader className="pr-8">
+            <DialogTitle className="text-base font-bold break-words">
               Interview Details: {selectedInterview?.roleTitle}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
@@ -285,7 +285,7 @@ export default function DashboardPage() {
                         <span className="font-bold text-primary">
                           {m.role === "user" ? "You" : "Interviewer"}:
                         </span>
-                        <p className="text-muted-foreground leading-relaxed pl-2 border-l-2 border-muted">
+                        <p className="text-muted-foreground leading-relaxed pl-2 border-l-2 border-muted break-words whitespace-pre-wrap">
                           {m.content}
                         </p>
                       </div>
@@ -295,46 +295,6 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* CV ANALİZ DETAY MODAL'I */}
-      <Dialog open={!!selectedAnalysis} onOpenChange={() => setSelectedAnalysis(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">
-              Resume Analysis: {selectedAnalysis?.roleTitle || "Target Role"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Analyzed on {selectedAnalysis && new Date(selectedAnalysis.createdAt).toLocaleDateString()}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedAnalysis && (
-            <div className="space-y-4 pt-2 text-xs">
-              <div className="flex justify-between items-center p-3 border rounded-xl bg-green-500/10">
-                <span className="font-semibold text-green-700 dark:text-green-400">
-                  Match Percentage
-                </span>
-                <span className="text-sm font-bold text-green-700 dark:text-green-400">
-                  {selectedAnalysis.matchPercentage}%
-                </span>
-              </div>
-
-              {selectedAnalysis.missingKeywords && selectedAnalysis.missingKeywords.length > 0 && (
-                <div className="space-y-1">
-                  <span className="font-bold text-amber-600">Missing Key Terms:</span>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {selectedAnalysis.missingKeywords.map((kw, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded text-[10px] font-medium">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </DialogContent>

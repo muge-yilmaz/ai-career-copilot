@@ -164,14 +164,14 @@ export function InterviewSimulator() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 border rounded-xl bg-card shadow-sm space-y-6">
-      <div className="flex justify-between items-center border-b pb-4">
-        <h2 className="text-xl font-bold">AI Online Interview Simulator</h2>
+    <div className="w-full max-w-2xl mx-auto p-4 sm:p-6 border rounded-xl bg-card shadow-sm space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center border-b pb-4">
+        <h2 className="text-lg sm:text-xl font-bold">AI Online Interview Simulator</h2>
         {isStarted && !isCompleted && (
           <button
             onClick={handleEndInterview}
             disabled={isLoading || isEvaluating || messages.length === 0}
-            className="py-1.5 px-3 bg-destructive text-destructive-foreground text-xs font-medium rounded-md hover:opacity-90 disabled:opacity-50"
+            className="w-full sm:w-auto min-h-10 py-2 px-3 bg-destructive text-destructive-foreground text-xs font-medium rounded-md hover:opacity-90 disabled:opacity-50"
           >
             {isEvaluating ? "Analyzing Performance..." : "End Interview"}
           </button>
@@ -187,20 +187,20 @@ export function InterviewSimulator() {
               placeholder="e.g., React Developer, Data Scientist..."
               value={roleTitle}
               onChange={(e) => setRoleTitle(e.target.value)}
-              className="w-full p-2 text-sm border rounded-md bg-background"
+              className="w-full min-h-11 p-2.5 text-base sm:text-sm border rounded-md bg-background"
               required
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90"
+            className="w-full min-h-11 py-2.5 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90"
           >
             Start Interview
           </button>
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="h-[350px] overflow-y-auto border p-4 rounded-md space-y-4 bg-muted/20">
+          <div className="h-[min(52dvh,420px)] min-h-[260px] sm:h-[350px] overflow-y-auto border p-3 sm:p-4 rounded-md space-y-4 bg-muted/20">
             {messages.length === 0 && (
               <p className="text-xs text-muted-foreground text-center italic">
                 The interviewer for "{roleTitle}" is ready. Type "Hello" below to begin.
@@ -220,7 +220,7 @@ export function InterviewSimulator() {
                     {senderName}
                   </span>
                   <div
-                    className={`p-3 rounded-lg text-xs leading-relaxed max-w-[85%] ${
+                    className={`p-3 rounded-lg text-sm leading-relaxed max-w-[90%] sm:max-w-[85%] break-words whitespace-pre-wrap ${
                       isUser
                         ? "bg-primary text-primary-foreground"
                         : "bg-card border text-card-foreground shadow-sm"
@@ -246,16 +246,16 @@ export function InterviewSimulator() {
             </div>
           ) : isCompleted && evaluation ? (
             <div className="p-5 border rounded-lg bg-card space-y-4 shadow-sm">
-              <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:justify-between min-[420px]:items-center border-b pb-3">
                 <h3 className="text-base font-bold text-primary">
                   Interview Performance Report
                 </h3>
-                <span className="text-xs px-2.5 py-1 bg-green-100 text-green-800 rounded-full font-semibold">
+                <span className="self-start text-xs px-2.5 py-1 bg-green-100 text-green-800 rounded-full font-semibold whitespace-nowrap">
                   Overall Score: {evaluation.overallScore}/100
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 text-xs">
                 <div className="p-3 border rounded bg-muted/30">
                   <span className="text-muted-foreground">Technical Score:</span>
                   <p className="text-sm font-semibold">{evaluation.technicalScore}/100</p>
@@ -300,18 +300,18 @@ export function InterviewSimulator() {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSend} className="flex gap-2">
+            <form onSubmit={handleSend} className="flex flex-col min-[420px]:flex-row gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your response..."
-                className="flex-1 p-2 text-sm border rounded-md bg-background"
+                className="flex-1 min-w-0 min-h-11 p-2.5 text-base sm:text-sm border rounded-md bg-background"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
+                className="min-h-11 shrink-0 py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
               >
                 {isLoading ? "Thinking..." : "Send"}
               </button>

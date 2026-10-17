@@ -16,14 +16,14 @@ export function ResumeAnalysisResult({ data }: { data: AnalysisData }) {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-2xl mx-auto p-6 border rounded-xl bg-card shadow-sm mt-6">
+    <div className="space-y-6 w-full max-w-2xl mx-auto p-4 sm:p-6 border rounded-xl bg-card shadow-sm mt-4 sm:mt-6">
       {/* Başlık ve Eşleşme Skoru */}
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h2 className="text-xl font-bold">CV Analysis Result</h2>
-          <p className="text-xs text-muted-foreground">Target Position: {data.jobTitle}</p>
+      <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between border-b pb-4">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold">CV Analysis Result</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground break-words">Target Position: {data.jobTitle}</p>
         </div>
-        <div className={`px-4 py-2 rounded-xl border text-center ${getScoreColor(data.matchScore)}`}>
+        <div className={`self-start shrink-0 px-4 py-2 rounded-xl border text-center ${getScoreColor(data.matchScore)}`}>
           <span className="text-2xl font-black">{data.matchScore}%</span>
           <p className="text-[10px] uppercase font-bold tracking-wider">Match</p>
         </div>
@@ -32,7 +32,7 @@ export function ResumeAnalysisResult({ data }: { data: AnalysisData }) {
       {/* Genel AI Değerlendirmesi */}
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground">General Evaluation</h3>
-        <p className="text-xs text-muted-foreground leading-relaxed">{data.feedback}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed break-words">{data.feedback}</p>
       </div>
 
       {/* Güçlü ve Eksik Yönler Grid */}
@@ -42,9 +42,9 @@ export function ResumeAnalysisResult({ data }: { data: AnalysisData }) {
           <h4 className="text-xs font-bold text-green-600 flex items-center gap-1">
             ✓ Strengths
           </h4>
-          <ul className="list-disc list-inside text-xs space-y-1 text-muted-foreground">
+          <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
             {data.strengths.map((item, idx) => (
-              <li key={idx}>{item}</li>
+              <li key={idx} className="break-words">{item}</li>
             ))}
           </ul>
         </div>
@@ -54,9 +54,9 @@ export function ResumeAnalysisResult({ data }: { data: AnalysisData }) {
           <h4 className="text-xs font-bold text-amber-600 flex items-center gap-1">
             ⚠ Missing Skills
           </h4>
-          <ul className="list-disc list-inside text-xs space-y-1 text-muted-foreground">
+          <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
             {data.missingSkills.map((item, idx) => (
-              <li key={idx}>{item}</li>
+              <li key={idx} className="break-words">{item}</li>
             ))}
           </ul>
         </div>
@@ -65,9 +65,9 @@ export function ResumeAnalysisResult({ data }: { data: AnalysisData }) {
       {/* İyileştirme Önerileri */}
       <div className="p-4 border rounded-lg bg-primary/5 space-y-2">
         <h4 className="text-xs font-bold text-primary">💡 Improvement Suggestions</h4>
-        <ul className="list-disc list-inside text-xs space-y-1 text-muted-foreground">
+        <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
           {data.suggestions.map((item, idx) => (
-            <li key={idx}>{item}</li>
+            <li key={idx} className="break-words">{item}</li>
           ))}
         </ul>
       </div>

@@ -60,10 +60,18 @@
   }
 }
 
+html {
+  height: auto;
+  min-height: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--background);
   color: var(--foreground);
+  min-height: 100%;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 @theme inline {

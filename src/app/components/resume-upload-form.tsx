@@ -54,8 +54,8 @@ export function ResumeUploadForm() {
 
   return (
     <div className="space-y-6">
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto p-6 border rounded-xl bg-card shadow-sm">
-      <h2 className="text-xl font-bold text-center">CV Upload & Analyze</h2>
+    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-lg mx-auto p-4 sm:p-6 border rounded-xl bg-card shadow-sm">
+      <h2 className="text-lg sm:text-xl font-bold text-center">CV Upload & Analyze</h2>
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Target Position (Optional)</label>
@@ -64,7 +64,7 @@ export function ResumeUploadForm() {
           placeholder="e.g., Senior Frontend Developer"
           value={targetJobTitle}
           onChange={(e) => setTargetJobTitle(e.target.value)}
-          className="w-full p-2 text-sm border rounded-md bg-background"
+          className="w-full min-h-11 p-2.5 text-base sm:text-sm border rounded-md bg-background"
         />
       </div>
 
@@ -74,7 +74,7 @@ export function ResumeUploadForm() {
           type="file"
           accept=".pdf,.docx"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="w-full p-2 text-sm border rounded-md bg-background file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground"
+          className="w-full min-h-11 max-w-full p-2 text-base sm:text-sm border rounded-md bg-background file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground"
         />
       </div>
 
@@ -90,7 +90,7 @@ export function ResumeUploadForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
+        className="w-full min-h-11 py-2.5 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
       >
         {loading ? "AI Analyzing..." : "Upload CV & Analyze"}
       </button>

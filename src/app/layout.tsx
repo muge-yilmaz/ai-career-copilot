@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
@@ -17,14 +17,20 @@ export const metadata: Metadata = {
   description: "AI-powered CV analysis and interview simulation platform",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${jakarta.variable} h-full antialiased`}
+      className={`${jakarta.variable} antialiased`}
     >
-      <body className={`${jakarta.className} min-h-full flex flex-col font-sans`} suppressHydrationWarning>
+      <body className={`${jakarta.className} flex min-h-dvh flex-col font-sans`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

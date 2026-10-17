@@ -27,11 +27,11 @@ export default async function ResumeDetailPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-6 md:p-12 space-y-6">
-      <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <main className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-background via-muted/20 to-background py-6 sm:py-8 px-4">
+      <div className="max-w-2xl mx-auto flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <Link
-          href="/"
-          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          href="/dashboard"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Back to Dashboard
         </Link>

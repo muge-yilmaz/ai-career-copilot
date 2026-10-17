@@ -33,13 +33,13 @@ export default async function HomePage() {
 
  return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-background via-muted/20 to-background">
-      <section className="container max-w-6xl mx-auto py-10 px-4 space-y-8">
+      <section className="container max-w-6xl mx-auto py-8 sm:py-10 px-4 space-y-6 sm:space-y-8">
         {/* Hero Banner Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-card text-xs font-medium text-primary shadow-sm">
-            <span>✨ Powered by Gemini 3.6 & Next.js App Router</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-card text-xs font-medium text-primary shadow-sm max-w-full">
+            <span className="truncate">✨ Powered by Gemini 3.6 & Next.js App Router</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-balance">
             Land Your Dream Job with{" "}
             <span className="bg-gradient-to-r from-primary via-purple-500 to-indigo-600 bg-clip-text text-transparent">
               AI-Powered
@@ -50,16 +50,16 @@ export default async function HomePage() {
             Upload your resume, match it against job descriptions, and practice real-time technical interviews with our AI simulator.
           </p>
 
-          <div className="flex justify-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
             <Link
               href="/interview"
-              className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg shadow-sm hover:opacity-90 transition-all"
+              className="px-4 py-2.5 bg-primary text-primary-foreground text-sm sm:text-xs font-semibold rounded-lg shadow-sm hover:opacity-90 transition-all"
             >
               🚀 Try AI Interviewer
             </Link>
             <Link
               href="/dashboard"
-              className="px-4 py-2 border bg-card text-card-foreground text-xs font-semibold rounded-lg hover:bg-muted transition-all"
+              className="px-4 py-2.5 border bg-card text-card-foreground text-sm sm:text-xs font-semibold rounded-lg hover:bg-muted transition-all"
             >
               📊 View Dashboard
             </Link>
@@ -68,19 +68,19 @@ export default async function HomePage() {
 
         {/* Dynamic User Profile Status Bar */}
         {user ? (
-          <div className="p-4 border rounded-xl bg-card/80 backdrop-blur-sm shadow-sm flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
+          <div className="p-4 border rounded-xl bg-card/80 backdrop-blur-sm shadow-sm flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
                 {user.name ? user.name[0].toUpperCase() : "U"}
               </div>
-              <div>
-                <p className="text-lg font-semibold">{user.name}</p>
-                <p className="text-[11px] text-muted-foreground">{user.email}</p>
+              <div className="min-w-0">
+                <p className="text-base sm:text-lg font-semibold truncate">{user.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 text-xs">
-              <div className="px-4 py-2 bg-muted rounded-md flex items-center gap-1.5">
+            <div className="flex flex-col min-[420px]:flex-row sm:items-center gap-2 sm:gap-3 text-xs w-full sm:w-auto">
+              <div className="px-4 py-2.5 bg-muted rounded-md flex items-center justify-center sm:justify-start gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                 <span className="text-muted-foreground">MongoDB:</span>
                 <span className="font-semibold text-foreground">
@@ -90,7 +90,7 @@ export default async function HomePage() {
 
               <a
                 href="/auth/logout"
-                className="px-4 py-2 border rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                className="px-4 py-2.5 border rounded-md text-center text-destructive hover:bg-destructive/10 transition-colors"
               >
                 Log Out
               </a>
@@ -111,9 +111,9 @@ export default async function HomePage() {
         )}
 
         {/* Feature Highlights & Resume Upload Form */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start pt-4">
-          <div className="space-y-4 md:col-span-1">
-            <div className="p-4 border rounded-xl bg-card shadow-sm space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 items-start pt-2 sm:pt-4">
+          <div className="order-2 lg:order-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-4 lg:col-span-1">
+            <div className="p-4 border rounded-xl bg-card shadow-sm space-y-2 h-full">
               <span className="text-xl">🎯</span>
               <h3 className="font-semibold text-sm">Keyword Match Score</h3>
               <p className="text-xs text-muted-foreground">
@@ -121,7 +121,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="p-4 border rounded-xl bg-card shadow-sm space-y-2">
+            <div className="p-4 border rounded-xl bg-card shadow-sm space-y-2 h-full">
               <span className="text-xl">🤖</span>
               <h3 className="font-semibold text-sm">Interactive AI Interviewer</h3>
               <p className="text-xs text-muted-foreground">
@@ -129,7 +129,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="p-4 border rounded-xl bg-card shadow-sm space-y-2">
+            <div className="p-4 border rounded-xl bg-card shadow-sm space-y-2 h-full">
               <span className="text-xl">📈</span>
               <h3 className="font-semibold text-sm">Performance Dashboard</h3>
               <p className="text-xs text-muted-foreground">
@@ -138,7 +138,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="md:col-span-2 border rounded-2xl p-6 bg-card shadow-md space-y-4">
+          <div className="order-1 lg:order-2 lg:col-span-2 border rounded-2xl p-4 sm:p-6 bg-card shadow-md space-y-4">
             <div className="border-b pb-3">
               <h2 className="text-base font-bold">Resume Tailor & Match Analyzer</h2>
               <p className="text-xs text-muted-foreground">
