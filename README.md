@@ -1,6 +1,6 @@
 # AI Career Copilot 🚀
 
-> **An AI-powered career optimization system that generates ATS-tailored resumes, analyzes skill gaps, and prepares candidate interview strategies.**
+> **An AI-powered career assistant designed to conduct real-time technical interviews using Gemini AI, analyze CV-job description matches, and provide actionable feedback.**
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://ai-career-copilot-drab.vercel.app/)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/muge-yilmaz/ai-career-copilot)
@@ -19,9 +19,11 @@
 ![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Shadcn UI](https://img.shields.io/badge/Shadcn/UI-000000?style=for-the-badge&logo=shadcnui)
 ![Prisma](https://img.shields.io/badge/Prisma_ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Auth0](https://img.shields.io/badge/Auth0-EB5424?style=for-the-badge&logo=auth0&logoColor=white)
+![Upstash](https://img.shields.io/badge/Upstash-Redis_Rate_Limit-00E599?style=for-the-badge&logo=redis)
 
 
 | Layer | Technology | Key Capabilities |
@@ -31,8 +33,8 @@
 | **Styling & UI** | Tailwind CSS / Lucide React | Responsive, accessible UI components (WCAG 2.1) |
 | **Database & ORM** | Prisma ORM with MongoDB Atlas | Document modeling, type-safe queries, dynamic schemas |
 | **Authentication** | Auth0 / NextAuth | Protected route middleware, JWT session management |
-| **AI Integration** | LLM API Pipelines | Structured prompt engineering, JSON response parsing |
-| **Testing & Tooling**| Jest & ESLint | Unit validation, strict linting rules |
+| **AI Integration** | LLM API Pipelines | Structured prompt engineering, JSON response parsing | Upstash Redis (`@upstash/ratelimit`)
+| **Deployment**| Vercel
 
 ---
 
@@ -41,8 +43,11 @@
 * **ATS Resume Generator:** Dynamically compiles user experience and tech stacks into ATS-friendly Markdown and PDF structures.
 * **Job Description Matcher:** Analyzes target job postings against candidate profiles to highlight missing technical keywords.
 * **Dynamic AI Coaching:** Generates interview questions and targeted preparation strategies based on real-time candidate data.
+* **Auth0 Integration:** Secure login, logout, and protected dashboard access.
 * **Type-Safe Data Layer:** Built using Prisma ORM connected to MongoDB Atlas for relational-like document mapping.
-* **Accessible UI System:** Fully responsive frontend compliant with WCAG 2.1 guidelines.
+* **Upstash Redis Rate Limiting:** Built-in API protection limiting abuse (10 requests/min per user).
+* **Interactive Dashboard:** View past interview transcripts and resume evaluations in sleek Shadcn Dialog modals.
+* **Modern SaaS UI:** Tailored with Tailwind CSS v4, Plus Jakarta Sans font, and seamless dark mode support.
 
 ---
 
