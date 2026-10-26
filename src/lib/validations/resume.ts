@@ -7,6 +7,12 @@ const ACCEPTED_FILE_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
 ];
 
+function blankStringToUndefined(value: unknown) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}
+
 export const resumeUploadSchema = z.object({
   file: z
     .custom<File>((val) => val instanceof File, "Please select a valid file.")
@@ -15,11 +21,18 @@ export const resumeUploadSchema = z.object({
       (file) => ACCEPTED_FILE_TYPES.includes(file.type),
       "Only PDF or DOCX files are supported."
     ),
-  targetJobTitle: z
-    .string()
-    .min(2, "Target job title must be at least 2 characters long.")
-    .max(100, "Target job title cannot exceed 100 characters.")
-    .optional(),
+  targetJobTitle: z.preprocess(
+    blankStringToUndefined,
+    z
+      .string()
+      .min(2, "Target job title must be at least 2 characters long.")
+      .max(100, "Target job title cannot exceed 100 characters.")
+      .optional(),
+  ),
+  jobDescription: z.preprocess(
+    blankStringToUndefined,
+    z.string().max(20_000, "Job description cannot exceed 20000 characters.").optional(),
+  ),
 });
 
 export type ResumeUploadInput = z.infer<typeof resumeUploadSchema>;

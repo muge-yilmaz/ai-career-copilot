@@ -1,5 +1,7 @@
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
+import { interviewEvaluationRequestSchema } from "@/lib/validations/interview";
+import { parseJsonBody } from "@/lib/validations/parse-json-body";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from "next/server";
 
@@ -14,14 +16,14 @@ export async function POST(req: NextRequest) {
       return new Response("Unauthorized access. Please log in.", { status: 401 });
     }
 
-    const { sessionId, messages, roleTitle } = await req.json();
+    const parsed = await parseJsonBody(req, interviewEvaluationRequestSchema);
+    if (!parsed.ok) return parsed.response;
 
-    if (!messages || messages.length === 0) {
-      return new Response("No interview content to evaluate.", { status: 400 });
-    }
+    const { sessionId, messages, roleTitle } = parsed.data;
+    const position = roleTitle ?? "Software Engineer";
 
     const prompt = `
-    You are an expert HR and Technical Lead evaluating a candidate's completed interview for the position: "${roleTitle || "Software Engineer"}".
+    You are an expert HR and Technical Lead evaluating a candidate's completed interview for the position: "${position}".
 
     Here is the transcript of the interview:
     ${JSON.stringify(messages, null, 2)}

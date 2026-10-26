@@ -1,6 +1,8 @@
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
 import { ratelimit } from "@/lib/redis";
+import { interviewRequestSchema } from "@/lib/validations/interview";
+import { parseJsonBody } from "@/lib/validations/parse-json-body";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from "next/server";
 
@@ -47,14 +49,25 @@ export async function POST(req: NextRequest) {
       return new Response("User not found in database.", { status: 404 });
     }
 
-    const { messages, roleTitle, sessionId, isFinished } = await req.json();
+    const parsed = await parseJsonBody(req, interviewRequestSchema);
+    if (!parsed.ok) return parsed.response;
+
+    const { messages, roleTitle, sessionId, isFinished } = parsed.data;
+    const position = roleTitle ?? "Software Engineer";
 
     // 1. Mülakat Bitti İşlemi (Save Session to DB)
-    if (isFinished && sessionId) {
+    if (isFinished) {
+      if (!sessionId) {
+        return Response.json(
+          { error: "A session id is required to save a finished interview." },
+          { status: 400 },
+        );
+      }
+
       await prisma.interviewSession.update({
         where: { id: sessionId },
         data: {
-          messages: messages,
+          messages,
         },
       });
       return new Response(JSON.stringify({ success: true, message: "Interview saved successfully." }), {
@@ -69,7 +82,7 @@ export async function POST(req: NextRequest) {
       const newSession = await prisma.interviewSession.create({
         data: {
           userId: user.id,
-          roleTitle: roleTitle || "Software Engineer",
+          roleTitle: position,
           messages: [],
         },
       });
@@ -77,24 +90,28 @@ export async function POST(req: NextRequest) {
     }
 
     const systemPrompt = `
-    You are an experienced, professional, and supportive Technical HR and Senior Engineer Interviewer conducting an interview for the "${roleTitle || "Software Engineer"}" position.
+    You are an experienced, professional, and supportive Technical HR and Senior Engineer Interviewer conducting an interview for the "${position}" position.
 
     INTERVIEW RULES:
     1. Communicate with the candidate in English.
     2. Ask only ONE question at a time.
     3. Keep your responses brief and conversational.
     4. Briefly evaluate the candidate's answer and ask a relevant follow-up or new technical question.
-    5. Start by briefly introducing yourself and asking the candidate to introduce themselves or answer a first question related to "${roleTitle || "Software Engineer"}".
+    5. Start by briefly introducing yourself and asking the candidate to introduce themselves or answer a first question related to "${position}".
     `;
 
+    const lastMessage = messages.at(-1);
+    if (!lastMessage) {
+      return Response.json({ error: "At least one message is required." }, { status: 400 });
+    }
+
     // Geçmişi Google AI formatına eşleme
-    const formattedHistory = (messages || []).slice(0, -1).map((m: any) => ({
-      role: m.role === "user" ? "user" : "model",
-      parts: [{ text: m.content || "Hello" }],
+    const formattedHistory = messages.slice(0, -1).map((message) => ({
+      role: message.role === "user" ? "user" : "model",
+      parts: [{ text: message.content || "Hello" }],
     }));
 
-    const lastMessage = messages[messages.length - 1];
-    const lastContent = lastMessage?.content || "Hello";
+    const lastContent = lastMessage.content;
 
     const model = genAI.getGenerativeModel({
       model: "gemini-3.6-flash",

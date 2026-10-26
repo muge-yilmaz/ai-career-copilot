@@ -24,38 +24,39 @@ export async function POST(request: NextRequest) {
     }
 
     
-    // 3. FormData Alımı
+    // 3. FormData Alımı ve Zod doğrulaması
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const targetJobTitle = (formData.get("targetJobTitle") as string) || "General Position";
-    const jobDescription = (formData.get("jobDescription") as string) || "";
-
-
-    // 4. Zod Validation
-    const validationResult = resumeUploadSchema.safeParse({ file, targetJobTitle });
+    const validationResult = resumeUploadSchema.safeParse({
+      file: formData.get("file"),
+      targetJobTitle: formData.get("targetJobTitle") ?? undefined,
+      jobDescription: formData.get("jobDescription") ?? undefined,
+    });
 
     if (!validationResult.success) {
       const errorMessage = validationResult.error.issues[0]?.message || "Invalid file data.";
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
+    const { file, jobDescription = "" } = validationResult.data;
+    const targetJobTitle = validationResult.data.targetJobTitle ?? "General Position";
 
-    // 5. Dosyayı Buffer'a Çevirme ve PDF Parsing
-    const arrayBuffer = await file!.arrayBuffer();
+
+    // 4. Dosyayı Buffer'a Çevirme ve PDF Parsing
+    const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     let extractedText = "";
-    if (file!.type === "application/pdf") {
+    if (file.type === "application/pdf") {
       extractedText = await parsePdfBuffer(buffer);
     } else {
       return NextResponse.json({ error: "Only PDF format is supported at the moment." }, { status: 400 });
     }
 
 
-    // 6. Gemini AI ile CV Analizi
+    // 5. Gemini AI ile CV Analizi
     const aiAnalysis = await analyzeResumeWithGemini(extractedText, targetJobTitle, jobDescription);
     
-    // 7. MongoDB Atlas'a Kaydetme (ResumeAnalysis Modeli)
+    // 6. MongoDB Atlas'a Kaydetme (ResumeAnalysis Modeli)
     const savedAnalysis = await prisma.resumeAnalysis.create({
       data: {
         userId: dbUser.id,
