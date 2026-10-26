@@ -168,7 +168,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between min-[420px]:justify-end gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center justify-between min-[420px]:justify-end gap-2 shrink-0">
                       <span
                         className={`text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap ${
                           session.score && session.score >= 75
@@ -180,6 +180,15 @@ export default function DashboardPage() {
                       >
                         {session.score !== null ? session.score + "/100" : "In Progress"}
                       </span>
+                      {session.score === null && (
+                        <Link
+                          href={`/interview?sessionId=${session.id}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="text-xs px-3 py-1.5 rounded-full font-semibold bg-primary text-primary-foreground hover:opacity-90 whitespace-nowrap"
+                        >
+                          Continue
+                        </Link>
+                      )}
                       <span className="text-xs text-muted-foreground group-hover:translate-x-0.5 transition-transform">
                         →
                       </span>
@@ -263,6 +272,15 @@ export default function DashboardPage() {
 
           {selectedInterview && (
             <div className="space-y-4 pt-2">
+              {selectedInterview.score === null && (
+                <Link
+                  href={`/interview?sessionId=${selectedInterview.id}`}
+                  className="inline-flex w-full items-center justify-center min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  Continue interview
+                </Link>
+              )}
+
               {/* Değerlendirme Özeti */}
               {selectedInterview.score !== null && (
                 <div className="p-4 border rounded-xl bg-primary/5 space-y-2">

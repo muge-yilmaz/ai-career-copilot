@@ -1,7 +1,7 @@
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
 import { ratelimit } from "@/lib/redis";
-import { interviewRequestSchema } from "@/lib/validations/interview";
+import { interviewRequestSchema, type InterviewMessage } from "@/lib/validations/interview";
 import { parseJsonBody } from "@/lib/validations/parse-json-body";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from "next/server";
@@ -9,6 +9,64 @@ import { NextRequest } from "next/server";
 export const maxDuration = 60;
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
+
+const sessionIdPattern = /^[a-f\d]{24}$/i;
+
+async function findOwnedSession(sessionId: string, userId: string) {
+  return prisma.interviewSession.findFirst({
+    where: { id: sessionId, userId },
+    select: { id: true, roleTitle: true, messages: true, score: true },
+  });
+}
+
+async function saveOwnedTranscript(sessionId: string, userId: string, transcript: InterviewMessage[]) {
+  const owned = await findOwnedSession(sessionId, userId);
+  if (!owned) return false;
+
+  await prisma.interviewSession.update({
+    where: { id: sessionId },
+    data: { messages: transcript },
+  });
+  return true;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth0.getSession(req);
+    if (!session?.user) {
+      return new Response("Unauthorized access. Please log in.", { status: 401 });
+    }
+
+    const sessionId = req.nextUrl.searchParams.get("sessionId");
+    if (!sessionId || !sessionIdPattern.test(sessionId)) {
+      return Response.json({ error: "Invalid session id." }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { auth0Id: session.user.sub },
+    });
+    if (!user) {
+      return new Response("User not found in database.", { status: 404 });
+    }
+
+    const interview = await findOwnedSession(sessionId, user.id);
+    if (!interview) {
+      return Response.json({ error: "Interview session not found." }, { status: 404 });
+    }
+    if (interview.score !== null) {
+      return Response.json({ error: "This interview is already complete." }, { status: 409 });
+    }
+
+    return Response.json({
+      id: interview.id,
+      roleTitle: interview.roleTitle,
+      messages: interview.messages,
+    });
+  } catch (error) {
+    console.error("Interview resume error:", error);
+    return Response.json({ error: "Could not load this interview." }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -64,12 +122,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await prisma.interviewSession.update({
-        where: { id: sessionId },
-        data: {
-          messages,
-        },
-      });
+      const saved = await saveOwnedTranscript(sessionId, user.id, messages);
+      if (!saved) {
+        return Response.json({ error: "Interview session not found." }, { status: 404 });
+      }
       return new Response(JSON.stringify({ success: true, message: "Interview saved successfully." }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

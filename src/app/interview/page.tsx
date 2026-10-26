@@ -1,9 +1,16 @@
 import { auth0 } from "@/lib/auth0";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import InterviewSimulator from "../components/interview-simulator";
+import { InterviewSimulator } from "../components/interview-simulator";
 
-export default async function InterviewPage() {
+interface InterviewPageProps {
+  searchParams: Promise<{ sessionId?: string | string[] }>;
+}
+
+export default async function InterviewPage({ searchParams }: InterviewPageProps) {
+  const params = await searchParams;
+  const rawSessionId = Array.isArray(params.sessionId) ? params.sessionId[0] : params.sessionId;
+  const resumeSessionId = rawSessionId && /^[a-f\d]{24}$/i.test(rawSessionId) ? rawSessionId : undefined;
   const session = await auth0.getSession();
   if (!session?.user) {
     redirect("/auth/login");
@@ -60,7 +67,7 @@ export default async function InterviewPage() {
 
           {/* Interactive Interview Component */}
           <div className="lg:col-span-2">
-            <InterviewSimulator />
+            <InterviewSimulator resumeSessionId={resumeSessionId} />
           </div>
         </div>
       </div>

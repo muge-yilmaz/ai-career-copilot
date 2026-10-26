@@ -17,16 +17,39 @@ interface Evaluation {
   feedback: string;
 }
 
-export function InterviewSimulator() {
+interface InterviewSimulatorProps {
+  resumeSessionId?: string;
+}
+
+function readTranscript(messages: unknown): Message[] {
+  if (!Array.isArray(messages)) return [];
+
+  return messages.flatMap((message, index) => {
+    if (!message || typeof message !== "object") return [];
+    const record = message as Record<string, unknown>;
+    const role = record.role === "user" || record.role === "assistant" ? record.role : null;
+    const content = typeof record.content === "string" ? record.content : "";
+    const id = typeof record.id === "string" && record.id.length > 0 && record.id.length <= 128
+      ? record.id
+      : `restored-${index}`;
+    if (!role || !content.trim()) return [];
+    return [{ id, role, content }];
+  });
+}
+
+export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps) {
   const [roleTitle, setRoleTitle] = useState("");
   const [isStarted, setIsStarted] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(resumeSessionId ?? null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [isResuming, setIsResuming] = useState(Boolean(resumeSessionId));
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [resumed, setResumed] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +60,40 @@ export function InterviewSimulator() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (!resumeSessionId) return;
+
+    let cancelled = false;
+
+    async function loadSession() {
+      try {
+        const res = await fetch(`/api/interview?sessionId=${encodeURIComponent(resumeSessionId ?? "")}`);
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(typeof data?.error === "string" ? data.error : "Could not resume this interview.");
+        }
+        if (cancelled) return;
+
+        setRoleTitle(typeof data?.roleTitle === "string" ? data.roleTitle : "");
+        setSessionId(typeof data?.id === "string" ? data.id : resumeSessionId ?? null);
+        setMessages(readTranscript(data?.messages));
+        setIsStarted(true);
+        setResumed(true);
+      } catch (error) {
+        if (!cancelled) {
+          setResumeError(error instanceof Error ? error.message : "Could not resume this interview.");
+        }
+      } finally {
+        if (!cancelled) setIsResuming(false);
+      }
+    }
+
+    void loadSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeSessionId]);
 
   const handleStartInterview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +177,11 @@ export function InterviewSimulator() {
         }),
       });
 
-      if (!res.ok || !res.body) {
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(typeof data?.error === "string" ? data.error : "Failed to get response");
+      }
+      if (!res.body) {
         throw new Error("Failed to get response");
       }
 
@@ -151,10 +212,11 @@ export function InterviewSimulator() {
       }
     } catch (err) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "Failed to get response from AI.";
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMsgId
-            ? { ...msg, content: "Error: Failed to get response from AI." }
+            ? { ...msg, content: message }
             : msg
         )
       );
@@ -178,8 +240,16 @@ export function InterviewSimulator() {
         )}
       </div>
 
-      {!isStarted ? (
+      {isResuming ? (
+        <div className="py-10 text-center space-y-2">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading your interview...</p>
+        </div>
+      ) : !isStarted ? (
         <form onSubmit={handleStartInterview} className="space-y-4">
+          {resumeError && (
+            <p className="text-xs text-destructive">{resumeError}</p>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium">Target Position for Interview</label>
             <input
@@ -201,9 +271,16 @@ export function InterviewSimulator() {
       ) : (
         <div className="space-y-4">
           <div className="h-[min(52dvh,420px)] min-h-[260px] sm:h-[350px] overflow-y-auto border p-3 sm:p-4 rounded-md space-y-4 bg-muted/20">
+            {resumed && (
+              <p className="text-xs text-muted-foreground text-center">
+                Continuing your {roleTitle} interview.
+              </p>
+            )}
             {messages.length === 0 && (
               <p className="text-xs text-muted-foreground text-center italic">
-                The interviewer for "{roleTitle}" is ready. Type "Hello" below to begin.
+                {resumed
+                  ? "No earlier messages were saved for this session. Type below to pick the conversation back up."
+                  : `The interviewer for "${roleTitle}" is ready. Type "Hello" below to begin.`}
               </p>
             )}
 
@@ -322,5 +399,3 @@ export function InterviewSimulator() {
     </div>
   );
 }
-
-export default InterviewSimulator;
