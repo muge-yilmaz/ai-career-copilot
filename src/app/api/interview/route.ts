@@ -1,3 +1,4 @@
+import { aiServiceErrorResponse } from "@/lib/ai-error";
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
 import { ratelimit } from "@/lib/redis";
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth0.getSession(req);
     if (!session?.user) {
-      return new Response("Unauthorized access. Please log in.", { status: 401 });
+      return Response.json({ error: "Unauthorized access. Please log in." }, { status: 401 });
     }
 
     const sessionId = req.nextUrl.searchParams.get("sessionId");
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
       where: { auth0Id: session.user.sub },
     });
     if (!user) {
-      return new Response("User not found in database.", { status: 404 });
+      return Response.json({ error: "User not found in database." }, { status: 404 });
     }
 
     const interview = await findOwnedSession(sessionId, user.id);
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth0.getSession(req);
     if (!session?.user) {
-      return new Response("Unauthorized access. Please log in.", { status: 401 });
+      return Response.json({ error: "Unauthorized access. Please log in." }, { status: 401 });
     }
 
 
@@ -82,17 +83,13 @@ export async function POST(req: NextRequest) {
       const { success, limit, remaining, reset } = await ratelimit.limit(identifier);
 
       if (!success) {
-        return new Response(
-          JSON.stringify({
-            error: "Too many requests. Please wait a minute before trying again.",
-            limit,
-            remaining,
-            reset,
-          }),
+        return Response.json(
           {
-            status: 429,
-            headers: { "Content-Type": "application/json" },
-          }
+            error: "Too many requests. Please wait a minute before trying again.",
+            code: "rate_limited",
+            reset,
+          },
+          { status: 429 },
         );
       }
     }
@@ -104,7 +101,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return new Response("User not found in database.", { status: 404 });
+      return Response.json({ error: "User not found in database." }, { status: 404 });
     }
 
     const parsed = await parseJsonBody(req, interviewRequestSchema);
@@ -198,6 +195,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Interview API Error:", error);
-    return new Response("An error occurred in the interview simulator.", { status: 500 });
+    return aiServiceErrorResponse(error, "The interview could not be completed. Please try again.");
   }
 }

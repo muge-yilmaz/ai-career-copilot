@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { toast } from "@/components/ui/toast";
+import { notifyApiError } from "@/lib/notify-api-error";
 
 interface Message {
   id: string;
@@ -69,10 +71,11 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
     async function loadSession() {
       try {
         const res = await fetch(`/api/interview?sessionId=${encodeURIComponent(resumeSessionId ?? "")}`);
-        const data = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(typeof data?.error === "string" ? data.error : "Could not resume this interview.");
+          const text = await notifyApiError(res);
+          throw new Error(text);
         }
+        const data = await res.json().catch(() => null);
         if (cancelled) return;
 
         setRoleTitle(typeof data?.roleTitle === "string" ? data.roleTitle : "");
@@ -109,7 +112,7 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
     try {
       // 1. Mülakatı Kaydet
       if (sessionId) {
-        await fetch("/api/interview", {
+        const saveRes = await fetch("/api/interview", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -118,6 +121,10 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
             isFinished: true,
           }),
         });
+        if (!saveRes.ok) {
+          await notifyApiError(saveRes);
+          return;
+        }
       }
 
       // 2. Değerlendirme Al
@@ -131,15 +138,23 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
         }),
       });
 
-      if (evalRes.ok) {
-        const evalData = await evalRes.json();
-        setEvaluation(evalData);
+      if (!evalRes.ok) {
+        await notifyApiError(evalRes);
+        return;
       }
+
+      const evalData = await evalRes.json();
+      setEvaluation(evalData);
+      setIsCompleted(true);
     } catch (err) {
       console.error("Failed to evaluate interview:", err);
+      toast.add({
+        type: "error",
+        title: "Request failed",
+        description: err instanceof Error ? err.message : "The interview could not be evaluated.",
+      });
     } finally {
       setIsEvaluating(false);
-      setIsCompleted(true);
     }
   };
 
@@ -178,8 +193,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(typeof data?.error === "string" ? data.error : "Failed to get response");
+        await notifyApiError(res);
+        setMessages((prev) => prev.filter((msg) => msg.id !== assistantMsgId));
+        return;
       }
       if (!res.body) {
         throw new Error("Failed to get response");
@@ -213,13 +229,12 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : "Failed to get response from AI.";
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMsgId
-            ? { ...msg, content: message }
-            : msg
-        )
-      );
+      toast.add({
+        type: "error",
+        title: "Request failed",
+        description: message,
+      });
+      setMessages((prev) => prev.filter((msg) => msg.id !== assistantMsgId || msg.content.trim().length > 0));
     } finally {
       setIsLoading(false);
     }

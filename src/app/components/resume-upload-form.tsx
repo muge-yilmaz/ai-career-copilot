@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
+import { notifyApiError } from "@/lib/notify-api-error";
 import { ResumeAnalysisResult } from "./resume-analysis-result";
-import {useRouter} from "next/navigation";
 
 export function ResumeUploadForm() {
   const router = useRouter();
@@ -33,20 +35,33 @@ export function ResumeUploadForm() {
         body: formData,
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || "An error occurred while uploading the file.");
+        const text = await notifyApiError(res);
+        setMessage({ type: "error", text });
+        return;
       }
 
+      const data = await res.json();
+
       setMessage({ type: "success", text: "CV successfully uploaded and text extracted!" });
+      toast.add({
+        type: "success",
+        title: "CV analyzed",
+        description: "Your resume match report is ready.",
+      });
      
       // Oluşturulan analizin ID'sine göre kullanıcıyı detay sayfasına yönlendiriyoruz
     if (data.data?.id) {
         router.push(`/dashboard/resume/${data.data.id}`);
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "An error occurred." });
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "An error occurred.";
+      setMessage({ type: "error", text });
+      toast.add({
+        type: "error",
+        title: "Request failed",
+        description: text,
+      });
     } finally {
       setLoading(false);
     }
