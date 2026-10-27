@@ -1,3 +1,4 @@
+import { aiServiceErrorResponse } from "@/lib/ai-error";
 import { auth0 } from "@/lib/auth0";
 import { analyzeResumeWithGemini } from "@/lib/gemini";
 import prisma from "@/lib/prisma";
@@ -75,8 +76,8 @@ export async function POST(request: NextRequest) {
       message: "Resume uploaded, analyzed with Gemini, and saved to database successfully.",
       data: savedAnalysis,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("CV Upload & AI Analysis API Error:", error);
-    return NextResponse.json({ error: "An error occurred while processing or analyzing the file." }, { status: 500 });
+    return aiServiceErrorResponse(error, "An error occurred while processing or analyzing the file.");
   }
 }

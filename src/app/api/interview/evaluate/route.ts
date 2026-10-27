@@ -1,3 +1,4 @@
+import { aiServiceErrorResponse } from "@/lib/ai-error";
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
 import { interviewEvaluationRequestSchema } from "@/lib/validations/interview";
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth0.getSession(req);
     if (!session?.user) {
-      return new Response("Unauthorized access. Please log in.", { status: 401 });
+      return Response.json({ error: "Unauthorized access. Please log in." }, { status: 401 });
     }
 
     const parsed = await parseJsonBody(req, interviewEvaluationRequestSchema);
@@ -69,16 +70,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Evaluation API Error:", error);
-    return new Response(
-      JSON.stringify({
-        overallScore: 75,
-        technicalScore: 70,
-        communicationScore: 80,
-        strengths: ["Completed the full interview session"],
-        improvements: ["Elaborate more on complex technical questions"],
-        feedback: "Session saved successfully. Evaluation completed with standard performance metrics.",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return aiServiceErrorResponse(error, "The interview could not be evaluated. Please try again.");
   }
 }
