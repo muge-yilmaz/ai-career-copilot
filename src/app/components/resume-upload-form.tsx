@@ -10,6 +10,7 @@ export function ResumeUploadForm() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [targetJobTitle, setTargetJobTitle] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
@@ -29,7 +30,7 @@ export function ResumeUploadForm() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("targetJobTitle", targetJobTitle);
-
+      formData.append("jobDescription", jobDescription);
       const res = await fetch("/api/resume/upload", {
         method: "POST",
         body: formData,
@@ -49,9 +50,9 @@ export function ResumeUploadForm() {
         title: "CV analyzed",
         description: "Your resume match report is ready.",
       });
-     
+
       // Oluşturulan analizin ID'sine göre kullanıcıyı detay sayfasına yönlendiriyoruz
-    if (data.data?.id) {
+      if (data.data?.id) {
         router.push(`/dashboard/resume/${data.data.id}`);
       }
     } catch (err) {
@@ -69,50 +70,61 @@ export function ResumeUploadForm() {
 
   return (
     <div className="space-y-6">
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-lg mx-auto p-4 sm:p-6 border rounded-xl bg-card shadow-sm">
-      <h2 className="text-lg sm:text-xl font-bold text-center">CV Upload & Analyze</h2>
+      <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-lg mx-auto p-4 sm:p-6 border rounded-xl bg-card shadow-sm">
+        <h2 className="text-lg sm:text-xl font-bold text-center">CV Upload & Analyze</h2>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Target Position (Optional)</label>
-        <input
-          type="text"
-          placeholder="e.g., Senior Frontend Developer"
-          value={targetJobTitle}
-          onChange={(e) => setTargetJobTitle(e.target.value)}
-          className="w-full min-h-11 p-2.5 text-base sm:text-sm border rounded-md bg-background"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">CV File (PDF or DOCX)</label>
-        <input
-          type="file"
-          accept=".pdf,.docx"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="w-full min-h-11 max-w-full p-2 text-base sm:text-sm border rounded-md bg-background file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground"
-        />
-      </div>
-
-      {message && (
-        <div
-          className={`p-3 text-xs rounded-md ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"
-            }`}
-        >
-          {message.text}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Target Position (Optional)</label>
+          <input
+            type="text"
+            placeholder="e.g., Senior Frontend Developer"
+            value={targetJobTitle}
+            onChange={(e) => setTargetJobTitle(e.target.value)}
+            className="w-full min-h-11 p-2.5 text-base sm:text-sm border rounded-md bg-background"
+          />
         </div>
-      )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full min-h-11 py-2.5 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
-      >
-        {loading ? "AI Analyzing..." : "Upload CV & Analyze"}
-      </button>
-    </form>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Job Description (Optional)</label>
+          <textarea
+            placeholder="Paste the job posting here"
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            rows={5}
+            className="w-full min-h-24 p-2.5 text-base sm:text-sm border rounded-md bg-background"
+          />
+        </div>
 
-    {/* Gemini Analiz Sonucu Varsa Ekrana Basıyoruz */}
-    {analysisResult && <ResumeAnalysisResult data={analysisResult} />}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">CV File (PDF)</label>
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="w-full min-h-11 max-w-full p-2 text-base sm:text-sm border rounded-md bg-background file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground"
+          />
+        </div>
+
+        {message && (
+          <div
+            className={`p-3 text-xs rounded-md ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"
+              }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full min-h-11 py-2.5 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
+        >
+          {loading ? "AI Analyzing..." : "Upload CV & Analyze"}
+        </button>
+      </form>
+
+      {/* Gemini Analiz Sonucu Varsa Ekrana Basıyoruz */}
+      {analysisResult && <ResumeAnalysisResult data={analysisResult} />}
     </div>
   );
 }

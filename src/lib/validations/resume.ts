@@ -4,7 +4,6 @@ import { z } from "zod";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_FILE_TYPES = [
   "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
 ];
 
 function blankStringToUndefined(value: unknown) {
@@ -19,7 +18,7 @@ export const resumeUploadSchema = z.object({
     .refine((file) => file.size <= MAX_FILE_SIZE, "File size cannot exceed 5MB.")
     .refine(
       (file) => ACCEPTED_FILE_TYPES.includes(file.type),
-      "Only PDF or DOCX files are supported."
+      "Only PDF files are supported."
     ),
   targetJobTitle: z.preprocess(
     blankStringToUndefined,

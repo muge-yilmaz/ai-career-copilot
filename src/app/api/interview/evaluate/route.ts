@@ -1,14 +1,15 @@
 import { aiServiceErrorResponse } from "@/lib/ai-error";
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
+import { findOwnedSession, saveOwnedEvaluation } from "@/lib/interview-session";
 import { interviewEvaluationRequestSchema } from "@/lib/validations/interview";
 import { parseJsonBody } from "@/lib/validations/parse-json-body";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateObject } from "ai";
+import { google, interviewEvaluationSchema } from "@/lib/gemini";
 import { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const maxDuration = 60;
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +22,20 @@ export async function POST(req: NextRequest) {
     if (!parsed.ok) return parsed.response;
 
     const { sessionId, messages, roleTitle } = parsed.data;
+
+    const user = await prisma.user.findUnique({ 
+      where: { auth0Id: session.user.sub },
+    });
+    if (!user) {
+      return Response.json({ error: "User not found in database." }, { status: 404 });
+    }
+
+    if (sessionId) {
+      const owned = await findOwnedSession(sessionId, user.id);
+      if (!owned) {
+        return Response.json({ error: "Interview session not found." }, { status: 404 });
+      }
+    }
     const position = roleTitle ?? "Software Engineer";
 
     const prompt = `
@@ -30,38 +45,24 @@ export async function POST(req: NextRequest) {
     ${JSON.stringify(messages, null, 2)}
 
     Evaluate the candidate strictly and professionally.
-    Return ONLY a valid JSON object matching this exact structure without markdown backticks or code blocks:
-
-    {
-      "overallScore": 85,
-      "technicalScore": 80,
-      "communicationScore": 90,
-      "strengths": ["Strong understanding of full-stack concepts", "Good communication"],
-      "improvements": ["Provide more specific code implementation details"],
-      "feedback": "Overall great interview performance. Demonstrates solid experience with the tech stack."
-    }
     `;
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
+    const rateLimitResponse = await enforceRateLimit(session.user.sub);
+    if (rateLimitResponse) return rateLimitResponse;
+    
+    const { object: evaluation } = await generateObject({
+      model: google("gemini-3.6-flash"),
+      schema: interviewEvaluationSchema,
+      system: "You are an expert HR and technical interviewer. Score the transcript strictly.",
+      prompt,
+      maxRetries: 5,
     });
 
-    const result = await model.generateContent(prompt);
-    let responseText = result.response.text();
-
-    // Markdown Backtick temizliği (eğer model ```json ... ``` dönerse)
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    const evaluation = JSON.parse(responseText);
-
     if (sessionId) {
-      await prisma.interviewSession.update({
-        where: { id: sessionId },
-        data: {
-          score: Math.round(Number(evaluation.overallScore) || 0),
-          feedback: JSON.stringify(evaluation),
-        },
-      });
+      const saved = await saveOwnedEvaluation(sessionId, user.id, evaluation);
+      if (!saved) {
+        return Response.json({ error: "Interview session not found." }, { status: 404 });
+      }
     }
 
     return new Response(JSON.stringify(evaluation), {
