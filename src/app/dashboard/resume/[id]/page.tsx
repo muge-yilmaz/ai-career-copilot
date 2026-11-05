@@ -17,9 +17,20 @@ export default async function ResumeDetailPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  // Veritabanından analiz verisini çekiyoruz
+  if (!/^[a-f\d]{24}$/i.test(id)) {
+    notFound();
+  }
+
+  const dbUser = await prisma.user.findUnique({ 
+    where: { auth0Id: session.user.sub },
+  });
+
+  if (!dbUser) {
+    notFound();
+  }
+
   const analysis = await prisma.resumeAnalysis.findUnique({
-    where: { id },
+    where: { id, userId: dbUser.id },
   });
 
   if (!analysis) {

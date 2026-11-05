@@ -1,35 +1,17 @@
 import { aiServiceErrorResponse } from "@/lib/ai-error";
 import { auth0 } from "@/lib/auth0";
 import prisma from "@/lib/prisma";
-import { ratelimit } from "@/lib/redis";
-import { interviewRequestSchema, type InterviewMessage } from "@/lib/validations/interview";
+import { enforceRateLimit } from "@/lib/redis";
+import { interviewRequestSchema } from "@/lib/validations/interview";
+import { findOwnedSession, saveOwnedTranscript } from "@/lib/interview-session";
 import { parseJsonBody } from "@/lib/validations/parse-json-body";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { streamText } from "ai";
+import { google } from "@/lib/gemini";
 import { NextRequest } from "next/server";
 
 export const maxDuration = 60;
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
-
 const sessionIdPattern = /^[a-f\d]{24}$/i;
-
-async function findOwnedSession(sessionId: string, userId: string) {
-  return prisma.interviewSession.findFirst({
-    where: { id: sessionId, userId },
-    select: { id: true, roleTitle: true, messages: true, score: true },
-  });
-}
-
-async function saveOwnedTranscript(sessionId: string, userId: string, transcript: InterviewMessage[]) {
-  const owned = await findOwnedSession(sessionId, userId);
-  if (!owned) return false;
-
-  await prisma.interviewSession.update({
-    where: { id: sessionId },
-    data: { messages: transcript },
-  });
-  return true;
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -76,25 +58,6 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized access. Please log in." }, { status: 401 });
     }
 
-
-    //UPSTASH RATE LIMITING KONTROLÜ
-    if (process.env.UPSTASH_REDIS_REST_URL) {
-      const identifier = session.user.sub || "anonymous_user";
-      const { success, limit, remaining, reset } = await ratelimit.limit(identifier);
-
-      if (!success) {
-        return Response.json(
-          {
-            error: "Too many requests. Please wait a minute before trying again.",
-            code: "rate_limited",
-            reset,
-          },
-          { status: 429 },
-        );
-      }
-    }
-
-
     // Auth0 kullanıcısını veritabanından bul
     const user = await prisma.user.findUnique({
       where: { auth0Id: session.user.sub },
@@ -119,6 +82,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
+
       const saved = await saveOwnedTranscript(sessionId, user.id, messages);
       if (!saved) {
         return Response.json({ error: "Interview session not found." }, { status: 404 });
@@ -131,7 +95,12 @@ export async function POST(req: NextRequest) {
 
     // 2. Yeni Oturum Oluşturma (İlk İletide Oturum Yoksa)
     let currentSessionId = sessionId;
-    if (!currentSessionId) {
+    if (currentSessionId) {
+      const owned = await findOwnedSession(currentSessionId, user.id);
+      if (!owned) {
+        return Response.json({ error: "Interview session not found." }, { status: 404 });
+      }
+    } else {
       const newSession = await prisma.interviewSession.create({
         data: {
           userId: user.id,
@@ -153,29 +122,19 @@ export async function POST(req: NextRequest) {
     5. Start by briefly introducing yourself and asking the candidate to introduce themselves or answer a first question related to "${position}".
     `;
 
-    const lastMessage = messages.at(-1);
-    if (!lastMessage) {
-      return Response.json({ error: "At least one message is required." }, { status: 400 });
-    }
 
-    // Geçmişi Google AI formatına eşleme
-    const formattedHistory = messages.slice(0, -1).map((message) => ({
-      role: message.role === "user" ? "user" : "model",
-      parts: [{ text: message.content || "Hello" }],
-    }));
+    const rateLimitResponse = await enforceRateLimit(session.user.sub);
+    if (rateLimitResponse) return rateLimitResponse;
 
-    const lastContent = lastMessage.content;
-
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
-      systemInstruction: systemPrompt,
+    const result = streamText({
+      model: google("gemini-3.6-flash"),
+      system: systemPrompt,
+      messages: messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      maxRetries: 5,
     });
-
-    const chat = model.startChat({
-      history: formattedHistory,
-    });
-
-    const result = await chat.sendMessageStream(lastContent);
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -183,8 +142,8 @@ export async function POST(req: NextRequest) {
         // İstemciye sessionId bilgisini ilk header/chunk olarak geçirebilmek için özel işaretçi
         controller.enqueue(encoder.encode(`[SESSION_ID:${currentSessionId}]`));
 
-        for await (const chunk of result.stream) {
-          controller.enqueue(encoder.encode(chunk.text()));
+        for await (const delta of result.textStream) {
+          controller.enqueue(encoder.encode(delta));
         }
         controller.close();
       },

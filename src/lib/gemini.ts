@@ -3,7 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 
 // 1. Google Gemini Sağlayıcısı (Projenin .env içindeki GOOGLE_GENERATIVE_AI_API_KEY anahtarını kullanır)
-const google = createGoogleGenerativeAI({
+export const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
@@ -29,6 +29,15 @@ export const resumeAnalysisSchema = z.object({
 });
 
 export type ResumeAnalysisResult = z.infer<typeof resumeAnalysisSchema>;
+
+export const interviewEvaluationSchema = z.object({
+  overallScore: z.number().int().min(0).max(100),
+  technicalScore: z.number().int().min(0).max(100),
+  communicationScore: z.number().int().min(0).max(100),
+  strengths: z.array(z.string()),
+  improvements: z.array(z.string()),
+  feedback: z.string(),
+});
 
 // 3. Gemini Analiz Fonksiyonu
 export async function analyzeResumeWithGemini(

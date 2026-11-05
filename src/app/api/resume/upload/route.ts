@@ -2,6 +2,7 @@ import { aiServiceErrorResponse } from "@/lib/ai-error";
 import { auth0 } from "@/lib/auth0";
 import { analyzeResumeWithGemini } from "@/lib/gemini";
 import prisma from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/redis";
 import { parsePdfBuffer } from "@/lib/resume-parser";
 import { resumeUploadSchema } from "@/lib/validations/resume";
 import { NextRequest, NextResponse } from "next/server";
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only PDF format is supported at the moment." }, { status: 400 });
     }
 
+    const rateLimitResponse = await enforceRateLimit(session.user.sub);
+    if (rateLimitResponse) return rateLimitResponse;
 
     // 5. Gemini AI ile CV Analizi
     const aiAnalysis = await analyzeResumeWithGemini(extractedText, targetJobTitle, jobDescription);
