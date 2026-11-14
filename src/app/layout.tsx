@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { QueryProvider } from "./components/query-provider";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
 import { Navbar } from "./components/navbar";
@@ -37,9 +38,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Toaster />
+          <QueryProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Toaster />
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

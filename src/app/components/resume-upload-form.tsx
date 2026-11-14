@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/toast";
 import { notifyApiError } from "@/lib/notify-api-error";
+import { invalidateDashboard } from "@/lib/dashboard-query";
 import { ResumeAnalysisResult } from "./resume-analysis-result";
 
 export function ResumeUploadForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [targetJobTitle, setTargetJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -45,6 +48,7 @@ export function ResumeUploadForm() {
       const data = await res.json();
 
       setMessage({ type: "success", text: "CV successfully uploaded and text extracted!" });
+      void invalidateDashboard(queryClient);
       toast.add({
         type: "success",
         title: "CV analyzed",
