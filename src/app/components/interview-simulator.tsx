@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/toast";
 import { notifyApiError } from "@/lib/notify-api-error";
+import { invalidateDashboard } from "@/lib/dashboard-query";
 
 interface Message {
   id: string;
@@ -40,6 +42,7 @@ function readTranscript(messages: unknown): Message[] {
 }
 
 export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps) {
+  const queryClient = useQueryClient();
   const [roleTitle, setRoleTitle] = useState("");
   const [isStarted, setIsStarted] = useState(false);
   const [input, setInput] = useState("");
@@ -125,6 +128,7 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
           await notifyApiError(saveRes);
           return;
         }
+        void invalidateDashboard(queryClient);
       }
 
       // 2. Değerlendirme Al
@@ -146,6 +150,7 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
       const evalData = await evalRes.json();
       setEvaluation(evalData);
       setIsCompleted(true);
+      void invalidateDashboard(queryClient);
     } catch (err) {
       console.error("Failed to evaluate interview:", err);
       toast.add({
@@ -213,6 +218,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
         if (chunk.includes("[SESSION_ID:")) {
           const match = chunk.match(/\[SESSION_ID:(.*?)\]/);
           if (match && match[1]) {
+            if (!sessionId) {
+              void invalidateDashboard(queryClient);
+            }
             setSessionId(match[1]);
             chunk = chunk.replace(/\[SESSION_ID:.*?\]/, "");
           }

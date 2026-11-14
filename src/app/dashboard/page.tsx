@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,53 +9,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
-
-interface ResumeAnalysisItem {
-  id: string;
-  matchScore: number;
-  jobTitle: string;
-  missingSkills?: string[];
-  feedback?: string;
-  createdAt: string;
-}
-
-interface InterviewSessionItem {
-  id: string;
-  roleTitle: string;
-  score: number | null;
-  feedback: string | null;
-  messages: any;
-  createdAt: string;
-}
+import { useDashboard, type InterviewSessionItem } from "@/lib/dashboard-query";
 
 export default function DashboardPage() {
-  const [resumeAnalyses, setResumeAnalyses] = useState<ResumeAnalysisItem[]>([]);
-  const [interviewSessions, setInterviewSessions] = useState<InterviewSessionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, isPending } = useDashboard();
+  const resumeAnalyses = data?.resumeAnalyses ?? [];
+  const interviewSessions = data?.interviewSessions ?? [];
   const [selectedInterview, setSelectedInterview] = useState<InterviewSessionItem | null>(null);
 
-
-  useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (res.ok) {
-          const data = await res.json();
-          setResumeAnalyses(data.resumeAnalyses || []);
-          setInterviewSessions(data.interviewSessions || []);
-        }
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchDashboardData();
-  }, []);
-
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="container max-w-5xl mx-auto py-10 px-4 text-center">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>

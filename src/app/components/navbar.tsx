@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/lib/dashboard-query";
 
 interface UserProfile {
   name?: string;
@@ -14,32 +15,19 @@ interface UserProfile {
 
 export function Navbar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isPending, isSuccess, isError, refetch } = useDashboard();
+  const user: UserProfile | null = isSuccess ? { name: "User" } : null;
+  const isLoading = isPending;
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathnameRef = useRef(pathname);
 
   useEffect(() => {
-    // Auth0 oturum durumunu kontrol etmek için lightweight me isteği
-    async function checkAuth() {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (res.ok) {
-          // Dashboard verisi dönebiliyorsa oturum açıktır
-          const data = await res.json();
-          setUser({ name: "User" });
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    checkAuth();
     setMenuOpen(false);
-  }, [pathname]);
+    if (pathnameRef.current !== pathname && isError) {
+      void refetch();
+    }
+    pathnameRef.current = pathname;
+  }, [pathname, isError, refetch]);
 
   const navItems = [
     { name: "Resume Tailor", href: "/" },
