@@ -7,6 +7,9 @@ export const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
+// 3.6 Flash yoğunlukta 503 veriyor. Lite daha boş ve cevap süresi daha kısa.
+export const geminiModel = "gemini-3.5-flash-lite";
+
 // 2. AI'ın Döneceği Yanıtın Zod Şeması (Structured Output)
 export const resumeAnalysisSchema = z.object({
   matchScore: z
@@ -62,12 +65,12 @@ export async function analyzeResumeWithGemini(
 
   // generateObject fonksiyonu, Gemini'nin yanıtı tam olarak Zod şemamıza uygun JSON formatında dönmesini zorunlu kılar.
   const { object } = await generateObject({
-    model: google("gemini-3.6-flash"), // Hızlı ve ücretsiz kota dostu model
+    model: google(geminiModel),
     schema: resumeAnalysisSchema,
     prompt: prompt,
     system:
     "You are an expert HR manager and technical interviewer. Provide a detailed and structured analysis of the CV in relation to the target job position.",
-    maxRetries: 5, // Yoğunluk anında otomatik olarak 5 defaya kadar tekrar dener
+    maxRetries: 1,
   });
 
   return object;

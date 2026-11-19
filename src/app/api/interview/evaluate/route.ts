@@ -5,7 +5,7 @@ import { findOwnedSession, saveOwnedEvaluation } from "@/lib/interview-session";
 import { interviewEvaluationRequestSchema } from "@/lib/validations/interview";
 import { parseJsonBody } from "@/lib/validations/parse-json-body";
 import { generateObject } from "ai";
-import { google, interviewEvaluationSchema } from "@/lib/gemini";
+import { geminiModel, google, interviewEvaluationSchema } from "@/lib/gemini";
 import { NextRequest } from "next/server";
 import { enforceRateLimit } from "@/lib/redis";
 
@@ -51,11 +51,11 @@ export async function POST(req: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
     
     const { object: evaluation } = await generateObject({
-      model: google("gemini-3.6-flash"),
+      model: google(geminiModel),
       schema: interviewEvaluationSchema,
       system: "You are an expert HR and technical interviewer. Score the transcript strictly.",
       prompt,
-      maxRetries: 5,
+      maxRetries: 1,
     });
 
     if (sessionId) {

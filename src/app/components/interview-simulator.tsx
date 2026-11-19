@@ -31,17 +31,25 @@ function readTranscript(messages: unknown): Message[] {
   return messages.flatMap((message, index) => {
     if (!message || typeof message !== "object") return [];
     const record = message as Record<string, unknown>;
-    const role = record.role === "user" || record.role === "assistant" ? record.role : null;
+    const role =
+      record.role === "user" || record.role === "assistant"
+        ? record.role
+        : null;
     const content = typeof record.content === "string" ? record.content : "";
-    const id = typeof record.id === "string" && record.id.length > 0 && record.id.length <= 128
-      ? record.id
-      : `restored-${index}`;
+    const id =
+      typeof record.id === "string" &&
+      record.id.length > 0 &&
+      record.id.length <= 128
+        ? record.id
+        : `restored-${index}`;
     if (!role || !content.trim()) return [];
     return [{ id, role, content }];
   });
 }
 
-export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps) {
+export function InterviewSimulator({
+  resumeSessionId,
+}: InterviewSimulatorProps) {
   const queryClient = useQueryClient();
   const [roleTitle, setRoleTitle] = useState("");
   const [isStarted, setIsStarted] = useState(false);
@@ -49,13 +57,16 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(resumeSessionId ?? null);
+  const [sessionId, setSessionId] = useState<string | null>(
+    resumeSessionId ?? null,
+  );
   const [isCompleted, setIsCompleted] = useState(false);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [isResuming, setIsResuming] = useState(Boolean(resumeSessionId));
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [resumed, setResumed] = useState(false);
-
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -73,7 +84,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
 
     async function loadSession() {
       try {
-        const res = await fetch(`/api/interview?sessionId=${encodeURIComponent(resumeSessionId ?? "")}`);
+        const res = await fetch(
+          `/api/interview?sessionId=${encodeURIComponent(resumeSessionId ?? "")}`,
+        );
         if (!res.ok) {
           const text = await notifyApiError(res);
           throw new Error(text);
@@ -82,13 +95,19 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
         if (cancelled) return;
 
         setRoleTitle(typeof data?.roleTitle === "string" ? data.roleTitle : "");
-        setSessionId(typeof data?.id === "string" ? data.id : resumeSessionId ?? null);
+        setSessionId(
+          typeof data?.id === "string" ? data.id : (resumeSessionId ?? null),
+        );
         setMessages(readTranscript(data?.messages));
         setIsStarted(true);
         setResumed(true);
       } catch (error) {
         if (!cancelled) {
-          setResumeError(error instanceof Error ? error.message : "Could not resume this interview.");
+          setResumeError(
+            error instanceof Error
+              ? error.message
+              : "Could not resume this interview.",
+          );
         }
       } finally {
         if (!cancelled) setIsResuming(false);
@@ -156,11 +175,65 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
       toast.add({
         type: "error",
         title: "Request failed",
-        description: err instanceof Error ? err.message : "The interview could not be evaluated.",
+        description:
+          err instanceof Error
+            ? err.message
+            : "The interview could not be evaluated.",
       });
     } finally {
       setIsEvaluating(false);
     }
+  };
+
+  const toggleListening = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.add({
+        type: "error",
+        title: "Voice input unavailable",
+        description:
+          "This browser cannot turn speech into text. Please try Chrome with the latest version. If you are using the text input instead.",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join(" ");
+      setInput(transcript);
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.start();
+  };
+
+  const speakReply = (text: string) => {
+    const clean = text.replace(/\[SESSION_ID:.*?\]/, "").trim();
+    if (!clean || !window.speechSynthesis) return;
+  
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = "en-US";
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -206,6 +279,7 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
         throw new Error("Failed to get response");
       }
 
+      let spoken = "";
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
 
@@ -230,19 +304,27 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
           prev.map((msg) =>
             msg.id === assistantMsgId
               ? { ...msg, content: msg.content + chunk }
-              : msg
-          )
+              : msg,
+          ),
         );
+
+        spoken += chunk;
       }
+      speakReply(spoken);
     } catch (err) {
       console.error(err);
-      const message = err instanceof Error ? err.message : "Failed to get response from AI.";
+      const message =
+        err instanceof Error ? err.message : "Failed to get response from AI.";
       toast.add({
         type: "error",
         title: "Request failed",
         description: message,
       });
-      setMessages((prev) => prev.filter((msg) => msg.id !== assistantMsgId || msg.content.trim().length > 0));
+      setMessages((prev) =>
+        prev.filter(
+          (msg) => msg.id !== assistantMsgId || msg.content.trim().length > 0,
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -251,7 +333,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
   return (
     <div className="w-full max-w-2xl mx-auto p-4 sm:p-6 border rounded-xl bg-card shadow-sm space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center border-b pb-4">
-        <h2 className="text-lg sm:text-xl font-bold">AI Online Interview Simulator</h2>
+        <h2 className="text-lg sm:text-xl font-bold">
+          AI Online Interview Simulator
+        </h2>
         {isStarted && !isCompleted && (
           <button
             onClick={handleEndInterview}
@@ -266,7 +350,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
       {isResuming ? (
         <div className="py-10 text-center space-y-2">
           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Loading your interview...</p>
+          <p className="text-sm text-muted-foreground">
+            Loading your interview...
+          </p>
         </div>
       ) : !isStarted ? (
         <form onSubmit={handleStartInterview} className="space-y-4">
@@ -274,7 +360,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
             <p className="text-xs text-destructive">{resumeError}</p>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Target Position for Interview</label>
+            <label className="text-sm font-medium">
+              Target Position for Interview
+            </label>
             <input
               type="text"
               placeholder="e.g., React Developer, Data Scientist..."
@@ -341,7 +429,8 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
                 Analyzing your interview performance...
               </p>
               <p className="text-xs text-muted-foreground">
-                Evaluating technical responses, communication clarity, and overall fit.
+                Evaluating technical responses, communication clarity, and
+                overall fit.
               </p>
             </div>
           ) : isCompleted && evaluation ? (
@@ -357,12 +446,20 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
 
               <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 text-xs">
                 <div className="p-3 border rounded bg-muted/30">
-                  <span className="text-muted-foreground">Technical Score:</span>
-                  <p className="text-sm font-semibold">{evaluation.technicalScore}/100</p>
+                  <span className="text-muted-foreground">
+                    Technical Score:
+                  </span>
+                  <p className="text-sm font-semibold">
+                    {evaluation.technicalScore}/100
+                  </p>
                 </div>
                 <div className="p-3 border rounded bg-muted/30">
-                  <span className="text-muted-foreground">Communication Score:</span>
-                  <p className="text-sm font-semibold">{evaluation.communicationScore}/100</p>
+                  <span className="text-muted-foreground">
+                    Communication Score:
+                  </span>
+                  <p className="text-sm font-semibold">
+                    {evaluation.communicationScore}/100
+                  </p>
                 </div>
               </div>
 
@@ -377,7 +474,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
                 </div>
 
                 <div>
-                  <strong className="text-amber-600">Areas for Improvement:</strong>
+                  <strong className="text-amber-600">
+                    Areas for Improvement:
+                  </strong>
                   <ul className="list-disc pl-4 mt-1 text-muted-foreground space-y-0.5">
                     {evaluation.improvements?.map((imp, idx) => (
                       <li key={idx}>{imp}</li>
@@ -386,7 +485,9 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
                 </div>
 
                 <div className="pt-2 border-t">
-                  <strong className="text-foreground">Detailed Feedback:</strong>
+                  <strong className="text-foreground">
+                    Detailed Feedback:
+                  </strong>
                   <p className="mt-1 text-muted-foreground leading-relaxed">
                     {evaluation.feedback}
                   </p>
@@ -400,7 +501,10 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSend} className="flex flex-col min-[420px]:flex-row gap-2">
+            <form
+              onSubmit={handleSend}
+              className="flex flex-col min-[420px]:flex-row gap-2"
+            >
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -414,6 +518,14 @@ export function InterviewSimulator({ resumeSessionId }: InterviewSimulatorProps)
                 className="min-h-11 shrink-0 py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
               >
                 {isLoading ? "Thinking..." : "Send"}
+              </button>
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isLoading}
+                className="min-h-11 shrink-0 py-2 px-4 border rounded-md text-sm font-medium"
+              >
+                {isListening ? "Stop" : "Mic"}
               </button>
             </form>
           )}
