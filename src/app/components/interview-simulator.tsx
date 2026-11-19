@@ -225,6 +225,17 @@ export function InterviewSimulator({
     recognition.start();
   };
 
+  const speakReply = (text: string) => {
+    const clean = text.replace(/\[SESSION_ID:.*?\]/, "").trim();
+    if (!clean || !window.speechSynthesis) return;
+  
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = "en-US";
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || isCompleted) return;
@@ -268,6 +279,7 @@ export function InterviewSimulator({
         throw new Error("Failed to get response");
       }
 
+      let spoken = "";
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
 
@@ -295,7 +307,10 @@ export function InterviewSimulator({
               : msg,
           ),
         );
+
+        spoken += chunk;
       }
+      speakReply(spoken);
     } catch (err) {
       console.error(err);
       const message =

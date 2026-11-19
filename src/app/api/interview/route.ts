@@ -6,7 +6,7 @@ import { interviewRequestSchema } from "@/lib/validations/interview";
 import { findOwnedSession, saveOwnedTranscript } from "@/lib/interview-session";
 import { parseJsonBody } from "@/lib/validations/parse-json-body";
 import { streamText } from "ai";
-import { google } from "@/lib/gemini";
+import { geminiModel, google } from "@/lib/gemini";
 import { NextRequest } from "next/server";
 
 export const maxDuration = 60;
@@ -127,13 +127,13 @@ export async function POST(req: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
 
     const result = streamText({
-      model: google("gemini-3.6-flash"),
+      model: google(geminiModel),
       system: systemPrompt,
       messages: messages.map((message) => ({
         role: message.role,
         content: message.content,
       })),
-      maxRetries: 5,
+      maxRetries: 1,
     });
 
     const encoder = new TextEncoder();
